@@ -1,0 +1,30 @@
+# Helm values for the cert-manager chart.
+# Reference: https://artifacthub.io/packages/helm/cert-manager/cert-manager
+
+# The CRDs must be applied manually before installing the chart, as Helm and Argo CD do not handle CRD installation automatically.
+# Run this command before the Argo CD application syncs:
+# kubectl apply -f https://github.com/cert-manager/cert-manager/releases/download/v1.17.2/cert-manager.crds.yaml
+installCRDs: false
+resources:
+  requests:
+    cpu: 10m
+    memory: 32Mi
+  limits:
+    cpu: 100m
+    memory: 128Mi
+webhook:
+  resources:
+    requests:
+      cpu: 10m
+      memory: 32Mi
+    limits:
+      cpu: 100m
+      memory: 128Mi
+cainjector:
+  resources:
+    requests:
+      cpu: 10m
+      memory: 32Mi
+    limits:
+      cpu: 100m
+      memory: 128Mi
