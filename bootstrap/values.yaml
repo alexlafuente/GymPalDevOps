@@ -1,0 +1,70 @@
+nameOverride: ""
+fullnameOverride: ""
+
+global:
+  domain: "gympal.com" # Global domain for the GymPal applications
+  storageClass: standard # Default storage class for persistent volumes. Th
+
+# Habilitation for each component's (subchart) deployment
+argo-cd:
+  enabled: true # Enable Argo CD installation
+
+ingress:
+  enabled: true # Enable ingress for Argo CD
+
+# Backend application configuration
+gympalBackend:
+  enabled: true
+  namespace: gympal
+  syncWave: 2
+  source:
+    repoURL: https://github.com/smyha/PTI-GymPalBack.git
+    targetRevision: HEAD
+    path: charts/backend
+
+# Frontend application configuration
+gympalFrontend:
+  enabled: true
+  namespace: gympal
+  syncWave: 3
+  source:
+    repoURL: https://github.com/Arnaugg9/Gympalfrontend.git
+    targetRevision: HEAD
+    path: charts/frontend
+
+# Cert manager for TLS certificate management
+cert-manager:
+  enabled: false # Enable deployment of cert-manager
+
+spec: 
+  destination:
+    server: https://kubernetes.default.svc # Target cluster API server
+  source:
+    repoURL: https://github.com/alexlafuente/GymPalDevOps.git # Git repository URL containing bootstrap manifests
+    targetRevision: HEAD # Branch, tag, or commit to sync from
+  syncPolicy:
+    automated:
+      prune: true # Delete resources that are no longer defined in Git
+      selfHeal: true # Automatically sync if the live state deviates from Git
+  project: default
+
+  ingress:
+    enabled: true
+    namespace: ingress-nginx
+    chart: ingress-nginx
+    repoURL: https://kubernetes.github.io/ingress-nginx
+    syncWave: 0
+    targetRevision: "4.14.0" # Specific version of ingress-nginx chart to use
+  
+  cert-manager:
+    enabled: false # Enable deployment of cert-manager
+    namespace: cert-manager
+    chart: cert-manager
+    repoURL: https://charts.jetstack.io
+    syncWave: 1
+    targetRevision: "v1.19.1"
+
+# Base manifests ArgoCD Application configuration, such as ClusterIssuer, Namespaces, etc.
+baseManifests:
+  enabled: false
+  syncWave: -1 # Ensure base manifests are applied after ingress controller. Suceptible to change based on dependencies.

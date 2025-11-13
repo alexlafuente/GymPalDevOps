@@ -1,0 +1,35 @@
+{{- if (hasKey .Values.spec "cert-manager") }}
+{{- if (index .Values.spec "cert-manager").enabled }}
+apiVersion: argoproj.io/v1alpha1
+kind: Application
+metadata:
+  name: cert-manager
+  namespace: argocd
+  finalizers:
+    - resources-finalizer.argocd.argoproj.io
+spec:
+  project: default
+  destination:
+    server: {{ .Values.spec.destination.server }} # Target Kubernetes API server
+    # Target namespace for cert-manager resources
+    namespace: {{ (index .Values.spec "cert-manager").namespace }}
+  source:
+    # Source Helm chart details
+    chart: {{ (index .Values.spec "cert-manager").chart }}
+    repoURL: {{ (index .Values.spec "cert-manager").repoURL }}
+    targetRevision: {{ (index .Values.spec "cert-manager").targetRevision }}
+    helm:
+      # Inject custom values for cert-manager from values/cert-manager.yaml
+      values: |
+{{ .Files.Get "values/cert-manager.yaml" | indent 8 }}
+  syncPolicy:
+    automated:
+      prune: true
+      selfHeal: true
+    syncOptions:
+      - CreateNamespace=true # Create the target namespace if it doesn't exist
+  info: # Assign sync wave to ensure proper ordering during synchronization
+     - name: 'Sync Wave'
+       value: {{ (index .Values.spec "cert-manager").syncWave | quote }}
+{{- end }}
+{{- end }}

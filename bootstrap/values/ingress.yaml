@@ -1,0 +1,76 @@
+controller:
+  # Configuration of the Nginx Ingress controller service
+  service:
+    type: NodePort
+    nodePorts:
+      http: 30080 # NodePort for HTTP traffic
+      https: 30443 # NodePort for HTTPS traffic
+
+  # Type of controller to deploy (Deployment or DaemonSet)
+  # DaemonSet ensures one pod per node (useful with hostPort)
+  kind: DaemonSet
+
+  # Node selector to restrict on which nodes the controller runs
+  nodeSelector:
+    "kubernetes.io/os": linux # Select only Linux nodes. 
+    "ingress-ready": "true" # Custom label to mark nodes ready for ingress
+
+  # Expose the controller ports directly on the host
+  hostPort:
+    enabled: true
+    ports:
+      http: 80 # Host port for HTTP
+      https: 443 # Host port for HTTPS
+
+  # Extra arguments to pass to the controller container
+  extraArgs:
+    # Disable SSL Passthrough (if true, Nginx does not terminate TLS)
+    enable-ssl-passthrough: "false"
+
+  # General configuration for the Nginx controller
+  config:
+    # Trust the X-Forwarded-* headers (important if there are proxies in front)
+    use-forwarded-headers: "true"
+    # Maximum size of the proxy request body (0 = unlimited)
+    proxy-body-size: "0"
+    # Disable global HTTPS redirection
+    ssl-redirect: "false"
+    # Allow the backend to send its own 'Server' header
+    allow-backend-server-header: "true"
+    # Use HTTP/2 for backend connections
+    use-http2: "true"
+
+  # Default backend service (empty to use the chart's default)
+  defaultBackendService: ""
+
+  # Resources for the main controller pods
+  resources:
+    requests:
+      cpu: 100m
+      memory: 128Mi
+    limits:
+      cpu: 500m
+      memory: 512Mi
+
+  # Configuration for admission webhooks (for Ingress validation/mutation)
+  admissionWebhooks:
+    # Webhook patcher configuration
+    patch:
+      # Node selector for the patcher pods
+      nodeSelector:
+        "kubernetes.io/os": linux # Select only Linux nodes for the patcher pods. This ensures compatibility and resource optimization.
+      # Resources for the patcher pods
+      resources:
+        requests:
+          cpu: 50m
+          memory: 64Mi
+
+# Configuration for the default backend (custom 404/503 page)
+defaultBackend:
+  # Enable the deployment of the default backend
+  enabled: true
+  # Resources for the default backend pod
+  resources:
+    requests:
+      cpu: 50m
+      memory: 64Mi

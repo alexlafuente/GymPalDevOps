@@ -1,0 +1,20 @@
+apiVersion: argoproj.io/v1alpha1
+kind: Application # Argo CD Application for bootstrapping GymPal DevOps
+metadata:
+  name: gympal-bootstrap
+  namespace: argocd
+  finalizers: # Ensure Argo CD cleans up resources on deletion
+    - resources-finalizer.argocd.argoproj.io
+spec:
+  project: default # Default Argo CD project
+  source:
+    repoURL: https://github.com/alexlafuente/GymPalDevOps.git # Git repository URL containing bootstrap manifests
+    targetRevision: HEAD
+    path: bootstrap # Path to bootstrap templates and manifests in the repo. This includes ingress, base manifests, and app definitions, which are rendered as separate Argo CD Applications, which Argo CD will then sync individually
+  destination:
+    server: https://kubernetes.default.svc
+    namespace: argocd
+  syncPolicy: # Define synchronization policy for the bootstrap application
+    automated: # Enable automated synchronization
+      prune: true # Delete resources that are no longer defined in Git
+      selfHeal: true # Automatically sync if the live state deviates from Git
