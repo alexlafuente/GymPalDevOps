@@ -34,7 +34,7 @@ gympalFrontend:
 
 # Cert manager for TLS certificate management
 cert-manager:
-  enabled: false # Enable deployment of cert-manager
+  enabled: true # Enable deployment of cert-manager
 
 spec: 
   destination:
@@ -57,7 +57,7 @@ spec:
     targetRevision: "4.14.0" # Specific version of ingress-nginx chart to use
   
   cert-manager:
-    enabled: false # Enable deployment of cert-manager
+    enabled: true # Enable deployment of cert-manager
     namespace: cert-manager
     chart: cert-manager
     repoURL: https://charts.jetstack.io
@@ -66,5 +66,5 @@ spec:
 
 # Base manifests ArgoCD Application configuration, such as ClusterIssuer, Namespaces, etc.
 baseManifests:
-  enabled: false
+  enabled: true
   syncWave: -1 # Ensure base manifests are applied after ingress controller. Suceptible to change based on dependencies.
