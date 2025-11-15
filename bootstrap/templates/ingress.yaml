@@ -1,22 +1,21 @@
-{{- if .Values.spec.ingress.enabled }}
-apiVersion: argoproj.io/v1alpha1
-kind: Application
+{{- if .Values.ingress.enabled }}
+apiVersion: {{ .Values.apiVersion }}
+kind: {{ .Values.kind }}
 metadata:
-  name: ingress-nginx
-  namespace: argocd
+  name: {{ .Values.ingress.metadata.name }}
+  namespace: {{.Values.metadata.namespace }} # Namespace where the Argo CD Application will be created
   annotations:
     # Define sync wave for ingress-nginx deployment. This is required to ensure it deploys before applications depending on it.
-    argocd.argoproj.io/sync-wave: "{{ .Values.spec.ingress.syncWave }}"
-  finalizers:
-    # Finalizer for Argo CD resource cleanup management
-    - resources-finalizer.argocd.argoproj.io
+    argocd.argoproj.io/sync-wave: {{ .Values.ingress.annotations.syncWave | quote }} # Sync wave for ordering. Quote used to ensure it's treated as a string.
+  finalizers: {{ .Values.metadata.finalizers | join "\n - " }} # Foreground cascade deletion of resources. This ensures that when the Application is deleted, all associated resources are also cleaned up.
+
 spec:
   project: {{ .Values.spec.project }}
   source:
     # Ingress Nginx Helm chart details
-    chart: {{ .Values.spec.ingress.chart }}
-    repoURL: {{ .Values.spec.ingress.repoURL }}
-    targetRevision: {{ .Values.spec.ingress.targetRevision }}
+    chart: {{ .Values.ingress.spec.source.chart }}
+    repoURL: {{ .Values.ingress.spec.source.repoURL }}
+    targetRevision: {{ .Values.ingress.spec.source.targetRevision }}
     helm:
       # Values file for Ingress Nginx configuration (retrieved from values/ingress.yaml)
       values: |
@@ -25,14 +24,6 @@ spec:
     # Target Kubernetes API server
     server: {{ .Values.spec.destination.server }}
     # Destination namespace for Ingress Nginx resources
-    namespace: {{ .Values.spec.ingress.namespace }}
-  syncPolicy:
-    # Automatic synchronization policy
-    automated:
-      prune: true
-      selfHeal: true
-    # Synchronization options
-    syncOptions:
-      # Create namespace if it doesn't exist
-      - CreateNamespace=true
+    namespace: {{ .Values.ingress.spec.destination.namespace }}
+  syncPolicy: {{- toYaml .Values.spec.syncPolicy | nindent 4 }}
 {{- end }}

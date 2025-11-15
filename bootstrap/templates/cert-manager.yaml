@@ -1,35 +1,32 @@
-{{- if (hasKey .Values.spec "cert-manager") }}
-{{- if (index .Values.spec "cert-manager").enabled }}
-apiVersion: argoproj.io/v1alpha1
-kind: Application
+{{- if .Values."cert-manager".enabled }}
+apiVersion: {{ .Values.apiVersion }}
+kind: {{ .Values.kind }}
 metadata:
-  name: cert-manager
-  namespace: argocd
-  finalizers:
-    - resources-finalizer.argocd.argoproj.io
+  name: {{ .Values."cert-manager".metadata.name }}
+  namespace: {{ .Values.metadata.namespace }} # Namespace where Argo CD is running
+  annotations:
+    # Define sync wave for cert-manager deployment. This is required to ensure it deploys before applications depending on it.
+    argocd.argoproj.io/sync-wave: {{ .Values."cert-manager".annotations.syncWave | quote }} # Sync wave for ordering. Quote used to ensure it's treated as a string.
+  finalizers: {{ .Values.metadata.finalizers | join "\n - " }} # Foreground cascade deletion of resources. This ensures that when the Application is deleted, all associated resources are also cleaned up.
+
 spec:
-  project: default
+  project: {{ .Values.spec.project }} # Argo CD project
   destination:
     server: {{ .Values.spec.destination.server }} # Target Kubernetes API server
     # Target namespace for cert-manager resources
-    namespace: {{ (index .Values.spec "cert-manager").namespace }}
+    namespace: {{ .Values."cert-manager".spec.destination.namespace }}
   source:
     # Source Helm chart details
-    chart: {{ (index .Values.spec "cert-manager").chart }}
-    repoURL: {{ (index .Values.spec "cert-manager").repoURL }}
-    targetRevision: {{ (index .Values.spec "cert-manager").targetRevision }}
+    chart: {{ .Values."cert-manager".spec.source.chart }}
+    repoURL: {{ .Values."cert-manager".spec.source.repoURL }}
+    targetRevision: {{ .Values."cert-manager".spec.source.targetRevision }}
     helm:
       # Inject custom values for cert-manager from values/cert-manager.yaml
       values: |
 {{ .Files.Get "values/cert-manager.yaml" | indent 8 }}
   syncPolicy:
     automated:
-      prune: true
-      selfHeal: true
-    syncOptions:
-      - CreateNamespace=true # Create the target namespace if it doesn't exist
-  info: # Assign sync wave to ensure proper ordering during synchronization
-     - name: 'Sync Wave'
-       value: {{ (index .Values.spec "cert-manager").syncWave | quote }}
-{{- end }}
+      prune: {{ .Values.spec.syncPolicy.automated.prune }} # Delete resources that are no longer defined in Git
+      selfHeal: {{ .Values.spec.syncPolicy.automated.selfHeal }} # Automatically sync if the live state deviates from Git
+    syncOptions: {{ .Values.spec.syncPolicy.syncOptions | join "\n - " }} # Create the target namespace if it doesn't exist
 {{- end }}

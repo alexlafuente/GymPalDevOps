@@ -5,66 +5,122 @@ global:
   domain: "gympal.com" # Global domain for the GymPal applications
   storageClass: standard # Default storage class for persistent volumes. Th
 
+apiVersion: argoproj.io/v1alpha1
+
+kind: Application # Argo CD Application for bootstrapping GymPal DevOps
+
+metadata:
+    namespace: argocd
+    finalizers:
+      - resources-finalizer.argocd.argoproj.io
+
+# ArgoCD Application configuration for bootstrap components
+spec: 
+  destination:
+    server: https://kubernetes.default.svc # Target cluster API server
+  syncPolicy:
+    automated:
+      prune: true # Delete resources that are no longer defined in Git
+      selfHeal: true # Automatically sync if the live state deviates from Git
+    syncOptions: # IMPORTANT: all true except for base manifests (which manages namespaces itself)
+      - CreateNamespace=true # Create the target namespace if it doesn't exist
+    retry:
+      limit: 5
+      backoff:
+        duration: 5s
+        factor: 2
+        maxDuration: 3m0s
+  project: default # Argo CD project
+
 # Habilitation for each component's (subchart) deployment
 argo-cd:
   enabled: true # Enable Argo CD installation
 
 ingress:
   enabled: true # Enable ingress for Argo CD
+  metadata:
+    name: ingress-nginx
+  annotations:
+    syncWave: 1 # ingress classes must exist before anything referencing them
+  spec:
+    source:
+      chart: ingress-nginx
+      repoURL: https://kubernetes.github.io/ingress-nginx
+      targetRevision: "4.14.0" # Specific version of ingress-nginx chart to use
+      helm:
+        values: "values.ingress.yaml" # Values file for ingress-nginx configuration
+      destination:
+        namespace: ingress-nginx
+          
+# Cert manager for TLS certificate management
+cert-manager:
+  enabled: true # Enable deployment of cert-manager
+  metadata:
+    name: cert-manager
+  annotations:
+    syncWave: 2 # Cert-manager depends on CRDs being installed first
+  spec:
+    source:
+      chart: cert-manager
+      repoURL: https://charts.jetstack.io
+      targetRevision: "1.19.1"
+      helm:
+        values: "values/cert-manager.yaml" # Values file for cert-manager configuration
+    destination:
+      namespace: cert-manager
 
 # Backend application configuration
 gympalBackend:
   enabled: true
-  namespace: gympal
-  syncWave: 3 # Backend app depend on namespaces from base
-  source:
-    repoURL: https://github.com/smyha/PTI-GymPalBack.git
-    targetRevision: HEAD
-    path: charts/backend
+  metadata:
+    name: gympal-backend
+  annotations:
+    syncWave: 3 # Backend app depend on namespaces from base
+  spec:
+    source:
+      repoURL: https://github.com/smyha/PTI-GymPalBack.git
+      targetRevision: HEAD
+      path: charts/backend
+      helm:
+        valueFiles:
+          - values.yaml
+    destination:
+      namespace: gympal
 
 # Frontend application configuration
 gympalFrontend:
   enabled: true
-  namespace: gympal
-  syncWave: 4 # Frontend app depends on backend
-  source:
-    repoURL: https://github.com/Arnaugg9/Gympalfrontend.git
-    targetRevision: HEAD
-    path: charts/frontend
-
-# Cert manager for TLS certificate management
-cert-manager:
-  enabled: true # Enable deployment of cert-manager
-
-spec: 
-  destination:
-    server: https://kubernetes.default.svc # Target cluster API server
-  source:
-    repoURL: https://github.com/alexlafuente/GymPalDevOps.git # Git repository URL containing bootstrap manifests
-    targetRevision: HEAD # Branch, tag, or commit to sync from
-  syncPolicy:
-    automated:
-      prune: true # Delete resources that are no longer defined in Git
-      selfHeal: true # Automatically sync if the live state deviates from Git
-  project: default
-
-  ingress:
-    enabled: true
-    namespace: ingress-nginx
-    chart: ingress-nginx
-    repoURL: https://kubernetes.github.io/ingress-nginx
-    syncWave: 0 # ingress classes and CRDs must exist before anything referencing them
-    targetRevision: "4.14.0" # Specific version of ingress-nginx chart to use
-  
-  cert-manager:
-    enabled: true # Enable deployment of cert-manager
-    namespace: cert-manager
-    chart: cert-manager
-    repoURL: https://charts.jetstack.io
-    syncWave: 1 # cert-manager CRDs must exist before ClusterIssuer
-    targetRevision: "v1.19.1"
+  metadata:
+    name: gympal-frontend
+  annotations:
+    syncWave: 4 # Frontend app depends on backend
+  spec:
+    source:
+      repoURL: https://github.com/Arnaugg9/Gympalfrontend.git
+      targetRevision: HEAD
+      path: charts/frontend
+      helm:
+        valueFiles:
+          - values.yaml
+    destination:
+      namespace: gympal
 
 # Base manifests ArgoCD Application configuration, such as ClusterIssuer, Namespaces, etc.
 baseManifests:
   enabled: true
-  syncWave: 2 # Ensure base manifests are applied after ingress controller. Suceptible to change based on dependencies.
+  metadata:
+    name: base-manifests
+  annotations:
+    syncWave: 0 # Base manifests must be created before any application deployments, and after CDRs
+  spec:
+    source:
+      repoURL: https://github.com/alexlafuente/GymPalDevOps.git # Git repository URL containing bootstrap manifests
+      targetRevision: HEAD # Branch, tag, or commit to sync from
+      path: bootstrap/manifests 
+      directory:
+        recurse: true # Process all YAML files in the directory
+    destination:
+      namespace: default
+    syncPolicy:
+      syncOptions:
+        - CreateNamespace=false # Namespace creation is managed separately in the manifests. Avoid Argo CD trying to create them.
