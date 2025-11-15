@@ -2,7 +2,7 @@
 # Note: The actual Argo CD installation is typically handled in a separate Helm chart or manually, as it is a prerequisite for managing other applications.
 global:
   # Global domain to access Argo CD through Ingress
-  domain: argocd.example.com
+  domain: argocd.gympal.com
 
 server:
   service:
@@ -19,19 +19,19 @@ server:
           service:
             port:
               name: http
-    # annotations:
-    #   # Indicate a cert-manager which manages the certificate for this Ingress
-    #   cert-manager.io/cluster-issuer: selfsigned-cluster-issuer
-    #   # Force redirection to HTTPS
-    #   nginx.ingress.kubernetes.io/force-ssl-redirect: "true"
-    #   # Maximum size of the request body (0 = no limit)
-    #   nginx.ingress.kubernetes.io/proxy-body-size: "0"
-    # # Configuration of TLS managed by cert-manager
-    # tls:
-    #   - hosts:
-    #       - argocd.gympal.com
-    #     # cert-manager will automatically create this secret
-    #     secretName: argocd-server-tls
+    annotations:
+      # Indicate a cert-manager which manages the certificate for this Ingress
+      cert-manager.io/cluster-issuer: selfsigned-cluster-issuer
+      # Force redirection to HTTPS
+      nginx.ingress.kubernetes.io/force-ssl-redirect: "true"
+      # Maximum size of the request body (0 = no limit)
+      nginx.ingress.kubernetes.io/proxy-body-size: "0"
+    # Configuration of TLS managed by cert-manager
+    tls:
+      - hosts:
+          - argocd.gympal.com
+        # cert-manager will automatically create this secret
+        secretName: argocd-server-tls
 
   # Additional arguments (disable internal HTTPS redirection)
   extraArgs:
