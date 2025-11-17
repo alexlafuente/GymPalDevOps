@@ -1,0 +1,15 @@
+# bootstrap/values/cert-manager-crds.yaml
+# Helm values for cert-manager-crds chart
+
+# CRDs are applied directly, no additional configuration required
+# Keep installCRDs as true to ensure CRDs are created
+installCRDs: true
+
+# Optional: resource requests for CRD job pods (usually small)
+resources:
+  requests:
+    cpu: 10m
+    memory: 32Mi
+  limits:
+    cpu: 50m
+    memory: 64Mi

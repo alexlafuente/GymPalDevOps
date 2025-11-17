@@ -7,14 +7,14 @@ metadata:
   annotations:
     # Define sync wave for base manifests deployment. This is required to ensure it deploys before applications depending on it.
     argocd.argoproj.io/sync-wave: {{ .Values.baseManifests.annotations.syncWave | quote }} # Sync wave for ordering. Quote used to ensure it's treated as a string.
-  finalizers: {{ .Values.metadata.finalizers | join "\n - " }} # Foreground cascade deletion of resources. This ensures that when the Application is deleted, all associated resources are also cleaned up.
+  # No finalizers needed here as base manifests manage their own resources and namespaces, which prevents potential issues during deletion.
 spec:
   project: {{ .Values.spec.project }}
   destination:
     server: {{ .Values.spec.destination.server }}
     # This namespace is set to 'default' because some of the manifests are cluster-wide resources
     # (like ClusterIssuer) or have their own namespace defined within the manifest.
-    namespace: default 
+    namespace: {{ .Values.baseManifests.spec.destination.namespace }} 
   source:
     # Source repository for the base manifests
     repoURL: {{ .Values.baseManifests.spec.source.repoURL }}
@@ -26,5 +26,5 @@ spec:
     automated:
       prune: {{ .Values.spec.syncPolicy.automated.prune }} # Delete resources that are no longer defined in Git
       selfHeal: {{ .Values.spec.syncPolicy.automated.selfHeal }} # Automatically sync if the live state deviates from Git
-    syncOptions: {{ .Values.baseManifests.spec.syncPolicy.syncOptions | join "\n - " }} # Create the target namespace if it doesn't exist
+      # Note: CreateNamespace is not set here because base manifests manage namespaces themselves.
 {{- end }} 

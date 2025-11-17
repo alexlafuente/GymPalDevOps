@@ -14,7 +14,7 @@ metadata:
     finalizers:
       - resources-finalizer.argocd.argoproj.io
 
-# ArgoCD Application configuration for bootstrap components
+# Generic spec values applied to all Applications unless overridden in their specific sections. This helps to maintain consistency across all deployed applications
 spec: 
   destination:
     server: https://kubernetes.default.svc # Target cluster API server
@@ -22,7 +22,7 @@ spec:
     automated:
       prune: true # Delete resources that are no longer defined in Git
       selfHeal: true # Automatically sync if the live state deviates from Git
-    syncOptions: # IMPORTANT: all true except for base manifests (which manages namespaces itself)
+    syncOptions: # IMPORTANT: all true except for base manifests and cert-manager-crds (which manages namespaces itself)
       - CreateNamespace=true # Create the target namespace if it doesn't exist
     retry:
       limit: 5
@@ -35,6 +35,17 @@ spec:
 # Habilitation for each component's (subchart) deployment
 argo-cd:
   enabled: true # Enable Argo CD installation
+  metadata:
+    name: argo-cd
+  annotations:
+    syncWave: -2 # Argo CD must be created before anything else
+  spec:
+    source:
+      chart: argo-cd
+      repoURL: https://argoproj.github.io/argo-helm
+      targetRevision: "9.1.3"
+    destination:
+      namespace: argocd
 
 ingress:
   enabled: true # Enable ingress for Argo CD
@@ -64,10 +75,21 @@ cert-manager:
       chart: cert-manager
       repoURL: https://charts.jetstack.io
       targetRevision: "1.19.1"
-      helm:
-        values: "values/cert-manager.yaml" # Values file for cert-manager configuration
     destination:
       namespace: cert-manager
+
+certManagerCRDs:
+    enabled: true
+    metadata:
+      name: cert-manager-crds
+    annotations:
+      syncWave: -1 # Ensure CRDs are installed first, before cert-manager itself
+    spec:
+      source:
+        chart: cert-manager-crds
+        repoURL: https://wiremind.github.io/wiremind-helm-charts
+        targetRevision: "1.19.1"
+      # No namespace is set because CRDs are cluster-wide resources, which do not belong to any namespace.
 
 # Backend application configuration
 gympalBackend:
@@ -120,7 +142,4 @@ baseManifests:
       directory:
         recurse: true # Process all YAML files in the directory
     destination:
-      namespace: default
-    syncPolicy:
-      syncOptions:
-        - CreateNamespace=false # Namespace creation is managed separately in the manifests. Avoid Argo CD trying to create them.
+      namespace: default # This namespace is set to 'default' because some of the manifests are cluster-wide resources (like ClusterIssuer) or have their own namespace defined within the manifest

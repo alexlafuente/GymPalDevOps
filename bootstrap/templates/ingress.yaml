@@ -7,8 +7,7 @@ metadata:
   annotations:
     # Define sync wave for ingress-nginx deployment. This is required to ensure it deploys before applications depending on it.
     argocd.argoproj.io/sync-wave: {{ .Values.ingress.annotations.syncWave | quote }} # Sync wave for ordering. Quote used to ensure it's treated as a string.
-  finalizers: {{ .Values.metadata.finalizers | join "\n - " }} # Foreground cascade deletion of resources. This ensures that when the Application is deleted, all associated resources are also cleaned up.
-
+# No finalizers needed here as ingress-nginx manages its own resources and namespaces, which prevents potential issues during deletion.
 spec:
   project: {{ .Values.spec.project }}
   source:

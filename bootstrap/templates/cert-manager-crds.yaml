@@ -1,0 +1,27 @@
+{{- if .Values.certManagerCRDs.enabled }}
+apiVersion: {{ .Values.apiVersion }}
+kind: {{ .Values.kind }}
+metadata:
+  name: {{ .Values.certManagerCRDs.metadata.name }}
+  namespace: {{ .Values.metadata.namespace }} # Namespace where Argo CD is running
+  annotations:
+    argocd.argoproj.io/sync-wave: "{{ .Values.certManagerCRDs.annotations.syncWave }}"
+  # No finalizers needed here as CRDs are cluster-wide resources and do not require cascade deletion.
+spec:
+  project: {{ .Values.spec.project }}
+  source:
+    chart: {{ .Values.certManagerCRDs.spec.source.chart }}
+    repoURL: {{ .Values.certManagerCRDs.spec.source.repoURL }}
+    targetRevision: {{ .Values.certManagerCRDs.spec.source.targetRevision }}
+    helm:
+      values: |
+{{ .Files.Get "values/cert-manager-crds.yaml" | indent 8 }} # Minimal additional values for cert-manager-crds
+  destination:
+    server: {{ .Values.spec.destination.server }}
+    # No namespace is set because CRDs are cluster-wide resources, which do not belong to any namespace.
+  syncPolicy:
+    automated:
+      prune: {{ .Values.spec.syncPolicy.automated.prune }} # Delete resources that are no longer defined in Git
+      selfHeal: {{ .Values.spec.syncPolicy.automated.selfHeal }} # Automatically sync if the live state deviates from Git
+      # No createNamespace here because CRDs are cluster-wide resources, which do not belong to any namespace. 
+{{- end }}
