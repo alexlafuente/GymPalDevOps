@@ -2,40 +2,39 @@
 apiVersion: {{ .Values.apiVersion }}
 kind: {{ .Values.kind }}
 metadata:
-  name: {{ .Values.gympalBackend.metadata.name }} # GymPal Backend Application
-  namespace: {{ .Values.metadata.namespace }} # Namespace where Argo CD is running
-  # Check and assign sync wave if specified (as it's optional for this app)
-  {{- $syncWave := get .Values.gympalBackend.annotations "syncWave" }} {{- /* Retrieve syncWave value */}}
-  {{- if $syncWave }} {{- /* Check if syncWave's value is set */}}
+  name: {{ .Values.gympalBackend.metadata.name }}
+  namespace: {{ .Values.metadata.namespace }}
+  {{- $syncWave := .Values.gympalBackend.annotations.syncWave }}
+  {{- if $syncWave }}
   annotations:
     argocd.argoproj.io/sync-wave: "{{ $syncWave }}"
   {{- end }}
-  finalizers: {{ .Values.metadata.finalizers | join "\n - " }} # Foreground cascade deletion of resources. This ensures that when the Application is deleted, all associated resources are also cleaned up. Join used to format lists properly, as YAML requires each item on a new line.
-
+  finalizers:
+    - resources-finalizer.argocd.argoproj.io
 spec:
-  project: {{ .Values.spec.project }} # Argo CD project
-
+  project: {{ .Values.spec.project }}
   source:
-    # Source repository for the application's manifests (Helm chart)
-    repoURL: {{ .Values.gympalBackend.source.repoURL }}
-    targetRevision: {{ .Values.gympalBackend.source.targetRevision | default "HEAD" }}
-    path: {{ .Values.gympalBackend.source.path }}
+    repoURL: {{ .Values.gympalBackend.spec.source.repoURL }}
+    targetRevision: {{ .Values.gympalBackend.spec.source.targetRevision | default "HEAD" }}
+    path: {{ .Values.gympalBackend.spec.source.path }}
     helm:
-      # Specify to Argo CD to use values.yaml from the GitOps repo, since its updated by CI pipeline
-      valueFiles: {{ .Values.gympalBackend.spec.source.helm.valueFiles | join "\n - " }}
-
+      valueFiles:
+        - values.yaml
   destination:
-    # Target cluster and namespace for the application resources
-    server: {{ .Values.spec.destination.server }} # Target cluster API server
-    namespace: {{ .Values.gympalBackend.spec.destination.namespace }} # Target namespace for backend resources
-
+    server: {{ .Values.spec.destination.server }}
+    namespace: {{ .Values.gympalBackend.spec.destination.namespace }}
   syncPolicy:
     automated:
-      prune: {{ .Values.spec.syncPolicy.automated.prune }} # Delete resources that are no longer defined in Git
-      selfHeal: {{ .Values.spec.syncPolicy.automated.selfHeal }} # Automatically sync if the live state deviates from Git
-    syncOptions: {{ .Values.spec.syncPolicy.syncOptions | join "\n - " }} # Create the target namespace if it doesn't exist
-    # Optional: Add retry logic, especially useful for applications in sync waves
+      prune: {{ .Values.spec.syncPolicy.automated.prune }}
+      selfHeal: {{ .Values.spec.syncPolicy.automated.selfHeal }}
+    syncOptions:
+      - CreateNamespace=true
     {{- if $syncWave }}
-    retry: {{- toYaml .Values.spec.syncPolicy.retry | nindent 6 }}
+    retry:
+      limit: {{ .Values.spec.syncPolicy.retry.limit }}
+      backoff:
+        duration: {{ .Values.spec.syncPolicy.retry.backoff.duration }}
+        factor: {{ .Values.spec.syncPolicy.retry.backoff.factor }}
+        maxDuration: {{ .Values.spec.syncPolicy.retry.backoff.maxDuration }}
     {{- end }}
 {{- end }} 

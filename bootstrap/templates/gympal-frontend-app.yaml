@@ -10,20 +10,19 @@ metadata:
   annotations:
     argocd.argoproj.io/sync-wave: "{{ $syncWave }}"
   {{- end }}
-  finalizers: {{ .Values.metadata.finalizers | join "\n - " }} # Foreground cascade deletion of resources. This ensures that when the Application is deleted, all associated resources are also cleaned up.
-
+  finalizers:
+    - resources-finalizer.argocd.argoproj.io
 spec:
   project: {{ .Values.spec.project }} # Argo CD project
 
   source:
     # Source repository for the application's manifests (Helm chart)
-    repoURL: {{ .Values.gympalFrontend.source.repoURL }}
-    targetRevision: {{ .Values.gympalFrontend.source.targetRevision | default "HEAD" }}
-    path: {{ .Values.gympalFrontend.source.path }}
+    repoURL: {{ .Values.gympalFrontend.spec.source.repoURL }}
+    targetRevision: {{ .Values.gympalFrontend.spec.source.targetRevision | default "HEAD" }}
+    path: {{ .Values.gympalFrontend.spec.source.path }}
     helm:
-      # Specify to Argo CD to use values.yaml from the GitOps repo, since its updated by CI pipeline
-      valueFiles: {{ .Values.gympalFrontend.spec.source.helm.valueFiles | join "\n - " }}
-
+      valueFiles:
+        - values.yaml
   destination:
     # Target cluster and namespace for the application resources
     server: {{ .Values.spec.destination.server }} # Target cluster API server
@@ -31,11 +30,16 @@ spec:
 
   syncPolicy:
     automated:
-      prune: {{ .Values.spec.syncPolicy.automated.prune }} # Delete resources that are no longer defined in Git
-      selfHeal: {{ .Values.spec.syncPolicy.automated.selfHeal }} # Automatically sync if the live state deviates from Git
-    syncOptions: {{ .Values.spec.syncPolicy.syncOptions | join "\n - " }} # Create the target namespace if it doesn't exist
-    # Optional: Add retry logic, especially useful for applications in sync waves
+      prune: {{ .Values.spec.syncPolicy.automated.prune }}
+      selfHeal: {{ .Values.spec.syncPolicy.automated.selfHeal }}
+    syncOptions:
+      - CreateNamespace=true
     {{- if $syncWave }}
-    retry: {{- toYaml .Values.spec.syncPolicy.retry | nindent 6 }}
+    retry:
+      limit: {{ .Values.spec.syncPolicy.retry.limit }}
+      backoff:
+        duration: {{ .Values.spec.syncPolicy.retry.backoff.duration }}
+        factor: {{ .Values.spec.syncPolicy.retry.backoff.factor }}
+        maxDuration: {{ .Values.spec.syncPolicy.retry.backoff.maxDuration }}
     {{- end }}
 {{- end }} 

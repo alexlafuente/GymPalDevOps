@@ -3,29 +3,25 @@ apiVersion: {{ .Values.apiVersion }}
 kind: {{ .Values.kind }}
 metadata:
   name: {{ .Values.certManager.metadata.name }}
-  namespace: {{ .Values.metadata.namespace }} # Namespace where Argo CD is running
+  namespace: {{ .Values.metadata.namespace }}
   annotations:
-    # Define sync wave for cert-manager deployment. This is required to ensure it deploys before applications depending on it.
-    argocd.argoproj.io/sync-wave: {{ .Values.certManager.annotations.syncWave | quote }} # Sync wave for ordering. Quote used to ensure it's treated as a string.
-# No finalizers needed here as cert-manager manages its own resources and namespaces, which prevents potential issues during deletion.
+    argocd.argoproj.io/sync-wave: {{ .Values.certManager.annotations.syncWave | quote }}
 spec:
-  project: {{ .Values.spec.project }} # Argo CD project
+  project: {{ .Values.spec.project }}
   destination:
-    server: {{ .Values.spec.destination.server }} # Target Kubernetes API server
-    # Target namespace for cert-manager resources
+    server: {{ .Values.spec.destination.server }}
     namespace: {{ .Values.certManager.spec.destination.namespace }}
   source:
-    # Source Helm chart details
     chart: {{ .Values.certManager.spec.source.chart }}
     repoURL: {{ .Values.certManager.spec.source.repoURL }}
     targetRevision: {{ .Values.certManager.spec.source.targetRevision }}
     helm:
-      # Inject custom values for cert-manager from values/cert-manager.yaml
       values: |
 {{ .Files.Get "values/cert-manager.yaml" | indent 8 }}
   syncPolicy:
     automated:
-      prune: {{ .Values.spec.syncPolicy.automated.prune }} # Delete resources that are no longer defined in Git
-      selfHeal: {{ .Values.spec.syncPolicy.automated.selfHeal }} # Automatically sync if the live state deviates from Git
-    syncOptions: {{ .Values.spec.syncPolicy.syncOptions | join "\n - " }} # Create the target namespace if it doesn't exist
+      prune: {{ .Values.spec.syncPolicy.automated.prune }}
+      selfHeal: {{ .Values.spec.syncPolicy.automated.selfHeal }}
+    syncOptions:
+      - CreateNamespace=true
 {{- end }}

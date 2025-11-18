@@ -3,10 +3,11 @@ apiVersion: {{ .Values.apiVersion }}
 kind: {{ .Values.kind }}
 metadata:
   name: {{ .Values.argoCD.metadata.name }}
-  namespace: {{ .Values.metadata.namespace }} # Namespace where the Argo CD Application will be created
+  namespace: {{ .Values.metadata.namespace }}
   annotations:
     argocd.argoproj.io/sync-wave: "{{ .Values.argoCD.annotations.syncWave }}"
-    finalizers: {{ .Values.metadata.finalizers | join "\n - " }} # Foreground cascade deletion of resources. This ensures that when the Application is deleted, all associated resources are also cleaned up.
+  finalizers:
+    - resources-finalizer.argocd.argoproj.io
 spec:
   project: {{ .Values.spec.project }}
   source:
@@ -17,7 +18,18 @@ spec:
       values: |
 {{ .Files.Get "values/argocd.yaml" | indent 8 }}
   destination:
-    server: {{ .Values.spec.destination.server }} # Cluster-local API server
+    server: {{ .Values.spec.destination.server }}
     namespace: {{ .Values.argoCD.spec.destination.namespace }}
-  syncPolicy: {{- toYaml .Values.spec.syncPolicy | nindent 4 }}
+  syncPolicy:
+    automated:
+      prune: {{ .Values.spec.syncPolicy.automated.prune }}
+      selfHeal: {{ .Values.spec.syncPolicy.automated.selfHeal }}
+    syncOptions:
+      - CreateNamespace=true
+    retry:
+      limit: {{ .Values.spec.syncPolicy.retry.limit }}
+      backoff:
+        duration: {{ .Values.spec.syncPolicy.retry.backoff.duration }}
+        factor: {{ .Values.spec.syncPolicy.retry.backoff.factor }}
+        maxDuration: {{ .Values.spec.syncPolicy.retry.backoff.maxDuration }}
 {{- end }}

@@ -58,10 +58,8 @@ ingress:
       chart: ingress-nginx
       repoURL: https://kubernetes.github.io/ingress-nginx
       targetRevision: "4.14.0" # Specific version of ingress-nginx chart to use
-      helm:
-        values: "values.ingress.yaml" # Values file for ingress-nginx configuration
-      destination:
-        namespace: ingress-nginx
+    destination:
+      namespace: ingress-nginx
           
 # Cert manager for TLS certificate management
 certManager:
