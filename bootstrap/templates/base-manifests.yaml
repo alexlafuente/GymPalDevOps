@@ -21,7 +21,7 @@ spec:
     targetRevision: {{ .Values.baseManifests.spec.source.targetRevision }}
     # Indicates Argo CD to sync the manifests from this directory
     path: {{ .Values.baseManifests.spec.source.path }}
-    directory: {{ .toYaml .Values.baseManifests.spec.source.directory | nindent 6 }}
+    directory: {{- toYaml .Values.baseManifests.spec.source.directory | nindent 6 }}
   syncPolicy:
     automated:
       prune: {{ .Values.spec.syncPolicy.automated.prune }} # Delete resources that are no longer defined in Git
