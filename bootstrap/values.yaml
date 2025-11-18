@@ -85,7 +85,7 @@ gympalBackend:
     source:
       repoURL: https://github.com/smyha/PTI-GymPalBack.git
       targetRevision: HEAD
-      path: charts/backend
+      path: charts/gympal-backend
       helm:
         valueFiles:
           - values.yaml
@@ -103,7 +103,7 @@ gympalFrontend:
     source:
       repoURL: https://github.com/Arnaugg9/Gympalfrontend.git
       targetRevision: HEAD
-      path: charts/frontend
+      path: charts/gympal-frontend
       helm:
         valueFiles:
           - values.yaml
