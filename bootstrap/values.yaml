@@ -83,7 +83,7 @@ gympalBackend:
     syncWave: 3 # Backend app depend on namespaces from base
   spec:
     source:
-      repoURL: https://github.com/smyha/PTI-GymPalBack.git
+      repoURL: https://github.com/alexlafuente/GymPalGitOps.git
       targetRevision: HEAD
       path: charts/gympal-backend
       helm:
@@ -101,7 +101,7 @@ gympalFrontend:
     syncWave: 4 # Frontend app depends on backend
   spec:
     source:
-      repoURL: https://github.com/Arnaugg9/Gympalfrontend.git
+      repoURL: https://github.com/alexlafuente/GymPalGitOps.git
       targetRevision: HEAD
       path: charts/gympal-frontend
       helm:
