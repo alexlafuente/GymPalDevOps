@@ -1,24 +1,24 @@
-{{- if .Values."cert-manager".enabled }}
+{{- if .Values.certManager.enabled }}
 apiVersion: {{ .Values.apiVersion }}
 kind: {{ .Values.kind }}
 metadata:
-  name: {{ .Values."cert-manager".metadata.name }}
+  name: {{ .Values.certManager.metadata.name }}
   namespace: {{ .Values.metadata.namespace }} # Namespace where Argo CD is running
   annotations:
     # Define sync wave for cert-manager deployment. This is required to ensure it deploys before applications depending on it.
-    argocd.argoproj.io/sync-wave: {{ .Values."cert-manager".annotations.syncWave | quote }} # Sync wave for ordering. Quote used to ensure it's treated as a string.
+    argocd.argoproj.io/sync-wave: {{ .Values.certManager.annotations.syncWave | quote }} # Sync wave for ordering. Quote used to ensure it's treated as a string.
 # No finalizers needed here as cert-manager manages its own resources and namespaces, which prevents potential issues during deletion.
 spec:
   project: {{ .Values.spec.project }} # Argo CD project
   destination:
     server: {{ .Values.spec.destination.server }} # Target Kubernetes API server
     # Target namespace for cert-manager resources
-    namespace: {{ .Values."cert-manager".spec.destination.namespace }}
+    namespace: {{ .Values.certManager.spec.destination.namespace }}
   source:
     # Source Helm chart details
-    chart: {{ .Values."cert-manager".spec.source.chart }}
-    repoURL: {{ .Values."cert-manager".spec.source.repoURL }}
-    targetRevision: {{ .Values."cert-manager".spec.source.targetRevision }}
+    chart: {{ .Values.certManager.spec.source.chart }}
+    repoURL: {{ .Values.certManager.spec.source.repoURL }}
+    targetRevision: {{ .Values.certManager.spec.source.targetRevision }}
     helm:
       # Inject custom values for cert-manager from values/cert-manager.yaml
       values: |

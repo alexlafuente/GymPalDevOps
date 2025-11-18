@@ -33,7 +33,7 @@ spec:
   project: default # Argo CD project
 
 # Habilitation for each component's (subchart) deployment
-argo-cd:
+argoCD:
   enabled: true # Enable Argo CD installation
   metadata:
     name: argo-cd
@@ -64,7 +64,7 @@ ingress:
         namespace: ingress-nginx
           
 # Cert manager for TLS certificate management
-cert-manager:
+certManager:
   enabled: true # Enable deployment of cert-manager
   metadata:
     name: cert-manager

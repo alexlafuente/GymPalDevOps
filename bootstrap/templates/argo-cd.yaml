@@ -1,23 +1,23 @@
-{{- if .Values.argo-cd.enabled }}
+{{- if .Values.argoCD.enabled }}
 apiVersion: {{ .Values.apiVersion }}
 kind: {{ .Values.kind }}
 metadata:
-  name: {{ .Values.argo-cd.metadata.name }}
+  name: {{ .Values.argoCD.metadata.name }}
   namespace: {{ .Values.metadata.namespace }} # Namespace where the Argo CD Application will be created
   annotations:
-    argocd.argoproj.io/sync-wave: "{{ .Values.argo-cd.annotations.syncWave }}"
+    argocd.argoproj.io/sync-wave: "{{ .Values.argoCD.annotations.syncWave }}"
     finalizers: {{ .Values.metadata.finalizers | join "\n - " }} # Foreground cascade deletion of resources. This ensures that when the Application is deleted, all associated resources are also cleaned up.
 spec:
   project: {{ .Values.spec.project }}
   source:
-    repoURL: {{ .Values.argo-cd.spec.source.repoURL }}
-    chart: {{ .Values.argo-cd.spec.source.chart }}
-    targetRevision: {{ .Values.argo-cd.spec.source.targetRevision }}
+    repoURL: {{ .Values.argoCD.spec.source.repoURL }}
+    chart: {{ .Values.argoCD.spec.source.chart }}
+    targetRevision: {{ .Values.argoCD.spec.source.targetRevision }}
     helm:
       values: |
 {{ .Files.Get "values/argocd.yaml" | indent 8 }}
   destination:
     server: {{ .Values.spec.destination.server }} # Cluster-local API server
-    namespace: {{ .Values.argo-cd.spec.destination.namespace }}
+    namespace: {{ .Values.argoCD.spec.destination.namespace }}
   syncPolicy: {{- toYaml .Values.spec.syncPolicy | nindent 4 }}
 {{- end }}
